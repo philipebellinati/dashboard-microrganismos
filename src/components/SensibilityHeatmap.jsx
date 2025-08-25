@@ -10,18 +10,19 @@ const SensibilityHeatmap = ({ data }) => {
     'CEFTRIAXONA',
     'MEROPENEM',
     'VANCOMICINA',
-    'IMIPENEM',
-    'LEVOFLOXACINA',
-    'CEFEPIME',
-    'GENTAMICINA',
-    'PIPERACILINA / TAZOBACTAM'
+    'PIPERACILINA / TAZOBACTAM',
+    'COLISTINA',
+    'CEFTOLOZANE/TAZOBACTAM',
+    'CEFTAZIDIMA / AVIBACTAM',
+    'OXACILINA',
+    'AMPICILINA'
   ];
 
   // Calcular dados do mapa de calor
   const heatmapData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    // Contar microrganismos mais comuns (top 10)
+    // Contar microrganismos mais comuns (top 15)
     const microCounts = {};
     data.forEach(item => {
       const micro = item.Microrganismo;
@@ -32,7 +33,7 @@ const SensibilityHeatmap = ({ data }) => {
 
     const topMicros = Object.entries(microCounts)
       .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
+      .slice(0, 15) // Alterado de 10 para 15
       .map(([micro]) => micro);
 
     // Calcular sensibilidade para cada combinação microrganismo-antibiótico
@@ -98,14 +99,14 @@ const SensibilityHeatmap = ({ data }) => {
           Mapa de Calor - Sensibilidade aos Antibióticos
         </CardTitle>
         <CardDescription>
-          Percentual de sensibilidade dos 10 microrganismos mais prevalentes aos principais antibióticos
+          Percentual de sensibilidade dos 15 microrganismos mais prevalentes aos principais antibióticos
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <div className="min-w-max">
             {/* Header com nomes dos antibióticos */}
-            <div className="grid grid-cols-11 gap-1 mb-2">
+            <div className="grid grid-cols-12 gap-1 mb-2"> {/* Ajustado para 12 colunas (1 microrganismo + 11 antibióticos) */}
               <div className="p-2 text-xs font-medium text-gray-700">
                 Microrganismo
               </div>
@@ -120,8 +121,8 @@ const SensibilityHeatmap = ({ data }) => {
 
             {/* Dados do mapa de calor */}
             {heatmapData.map((row, index) => (
-              <div key={index} className="grid grid-cols-11 gap-1 mb-1">
-                <div className="p-2 text-xs font-medium text-gray-900 bg-gray-100 rounded">
+              <div key={index} className="grid grid-cols-12 gap-1 mb-1"> {/* Ajustado para 12 colunas */}
+                <div className="p-2 text-xs font-medium text-gray-900 bg-gray-100 rounded italic">
                   {row.microrganismo.length > 20 
                     ? `${row.microrganismo.substring(0, 20)}...` 
                     : row.microrganismo}
@@ -177,4 +178,6 @@ const SensibilityHeatmap = ({ data }) => {
 };
 
 export default SensibilityHeatmap;
+
+
 

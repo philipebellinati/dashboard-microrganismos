@@ -6,6 +6,8 @@ import { Button } from './components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Filter, BarChart3, Activity, Microscope, Calendar, MapPin } from 'lucide-react';
 import SensibilityHeatmap from './components/SensibilityHeatmap';
+import ResistanceHeatmap from './components/ResistanceHeatmap';
+import SensibilityEvolutionChart from './components/SensibilityEvolutionChart';
 import './App.css';
 
 // Importar dados CSV
@@ -16,13 +18,11 @@ function App() {
   const [filteredData, setFilteredData] = useState([]);
   const [filters, setFilters] = useState({
     mes: 'todos',
-    tipoMicrorganismo: 'todos',
     material: 'todos',
     local: 'todos',
     microrganismo: 'todos'
   });
 
-  // Processar dados CSV
   useEffect(() => {
     const lines = csvData.trim().split('\n');
     const headers = lines[0].split(',');
@@ -45,11 +45,8 @@ function App() {
     if (filters.mes !== 'todos') {
       filtered = filtered.filter(item => item.Mes === filters.mes);
     }
-    if (filters.tipoMicrorganismo !== 'todos') {
-      filtered = filtered.filter(item => item['Tipo Microrganismo'] === filters.tipoMicrorganismo);
-    }
     if (filters.material !== 'todos') {
-      filtered = filtered.filter(item => item.Material === filters.material);
+      filtered = filtered.filter(item => item['Material Agrupado'] === filters.material);
     }
     if (filters.local !== 'todos') {
       filtered = filtered.filter(item => item.Local === filters.local);
@@ -64,15 +61,8 @@ function App() {
   // Calcular estatísticas
   const stats = useMemo(() => {
     const totalAmostras = filteredData.length;
-    const bacterias = filteredData.filter(item => item['Tipo Microrganismo'] === 'Bactéria').length;
-    const fungos = filteredData.filter(item => item['Tipo Microrganismo'] === 'Fungo').length;
-    
     return {
       totalAmostras,
-      bacterias,
-      fungos,
-      percentualBacterias: totalAmostras > 0 ? ((bacterias / totalAmostras) * 100).toFixed(1) : 0,
-      percentualFungos: totalAmostras > 0 ? ((fungos / totalAmostras) * 100).toFixed(1) : 0
     };
   }, [filteredData]);
 
@@ -81,7 +71,6 @@ function App() {
     const counts = {};
     filteredData.forEach(item => {
       const micro = item.Microrganismo;
-      const tipo = item['Tipo Microrganismo'];
       counts[micro] = (counts[micro] || 0) + 1;
     });
 
@@ -103,7 +92,7 @@ function App() {
   const materialDistribution = useMemo(() => {
     const counts = {};
     filteredData.forEach(item => {
-      const material = item.Material;
+      const material = item["Material Agrupado"];
       counts[material] = (counts[material] || 0) + 1;
     });
 
@@ -122,17 +111,13 @@ function App() {
   };
 
   const meses = ['1', '2', '3', '4', '5', '6'];
-  const tiposMicrorganismo = ['Bactéria', 'Fungo'];
-  const materiais = getUniqueValues('Material');
+  const materiais = getUniqueValues("Material Agrupado");
   const locais = getUniqueValues('Local');
   const microrganismos = getUniqueValues('Microrganismo');
-
-  const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff', '#00ffff', '#ff0000'];
 
   const limparFiltros = () => {
     setFilters({
       mes: 'todos',
-      tipoMicrorganismo: 'todos',
       material: 'todos',
       local: 'todos',
       microrganismo: 'todos'
@@ -159,11 +144,11 @@ function App() {
               Filtros
             </CardTitle>
             <CardDescription>
-              Filtre os dados por período, tipo de microrganismo, material e localização
+              Filtre os dados por período, material e localização
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   <Calendar className="h-4 w-4 inline mr-1" />
@@ -187,26 +172,11 @@ function App() {
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">
                   <Activity className="h-4 w-4 inline mr-1" />
-                  Tipo
+                  Material
                 </label>
-                <Select value={filters.tipoMicrorganismo} onValueChange={(value) => setFilters({...filters, tipoMicrorganismo: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tipo de microrganismo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os tipos</SelectItem>
-                    {tiposMicrorganismo.map(tipo => (
-                      <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Material</label>
                 <Select value={filters.material} onValueChange={(value) => setFilters({...filters, material: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Material" />
+                    <SelectValue placeholder="Selecione o material" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os materiais</SelectItem>
@@ -224,11 +194,11 @@ function App() {
                 </label>
                 <Select value={filters.local} onValueChange={(value) => setFilters({...filters, local: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Setor" />
+                    <SelectValue placeholder="Selecione o setor" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os setores</SelectItem>
-                    {locais.slice(0, 20).map(local => (
+                    {locais.map(local => (
                       <SelectItem key={local} value={local}>{local}</SelectItem>
                     ))}
                   </SelectContent>
@@ -236,16 +206,21 @@ function App() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Microrganismo</label>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  <Microscope className="h-4 w-4 inline mr-1" />
+                  Microrganismo
+                </label>
                 <Select value={filters.microrganismo} onValueChange={(value) => setFilters({...filters, microrganismo: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Microrganismo" />
+                    <SelectValue placeholder="Selecione o microrganismo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {microrganismos.slice(0, 50).map(micro => (
-                      <SelectItem key={micro} value={micro}>{micro}</SelectItem>
-                    ))}
+                    <SelectItem value="todos">Todos os microrganismos</SelectItem>
+                  {microrganismos.map(micro => (
+                    <SelectItem key={micro} value={micro}>
+                      <span className="italic">{micro}</span>
+                    </SelectItem>
+                  ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -260,33 +235,13 @@ function App() {
         </Card>
 
         {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total de Amostras</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalAmostras}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Bactérias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.bacterias}</div>
-              <p className="text-xs text-gray-500">{stats.percentualBacterias}% do total</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Fungos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.fungos}</div>
-              <p className="text-xs text-gray-500">{stats.percentualFungos}% do total</p>
             </CardContent>
           </Card>
 
@@ -336,7 +291,7 @@ function App() {
                     dataKey="nome" 
                     type="category" 
                     width={120}
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 10, angle: -30, textAnchor: 'end', fontStyle: 'italic' }}
                   />
                   <Tooltip 
                     formatter={(value, name) => [value, 'Contagem']}
@@ -392,53 +347,17 @@ function App() {
         {/* Mapa de calor de sensibilidade */}
         <SensibilityHeatmap data={filteredData} />
 
-        {/* Tabela de dados detalhados */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados Detalhados</CardTitle>
-            <CardDescription>
-              Primeiros 20 registros dos dados filtrados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Data</th>
-                    <th className="text-left p-2">Material</th>
-                    <th className="text-left p-2">Setor</th>
-                    <th className="text-left p-2">Microrganismo</th>
-                    <th className="text-left p-2">Tipo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredData.slice(0, 20).map((item, index) => (
-                    <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{new Date(item['Data Cadastro']).toLocaleDateString('pt-BR')}</td>
-                      <td className="p-2">{item.Material}</td>
-                      <td className="p-2 text-xs">{item.Local}</td>
-                      <td className="p-2 font-medium">{item.Microrganismo}</td>
-                      <td className="p-2">
-                        <Badge variant={item['Tipo Microrganismo'] === 'Bactéria' ? 'default' : 'secondary'}>
-                          {item['Tipo Microrganismo']}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredData.length > 20 && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Mostrando 20 de {filteredData.length} registros
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Mapa de calor de mecanismos de resistência */}
+        <ResistanceHeatmap data={filteredData} />
+
+        {/* Gráfico de evolução de sensibilidade */}
+        <SensibilityEvolutionChart data={filteredData} />
+
+
       </div>
     </div>
   );
 }
 
 export default App;
+
